@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8f7ef">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Quản lý RSVP — Trâm Anh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin.css">
+  <script src="/admin.js" defer></script>
+</head>
+<body>
+  <header class="admin-topbar"><a class="brand" href="/"><span class="brand-seal">T</span><span>TRỊNH TRÂM ANH <small>GRADUATION · 2026</small></span></a><div class="top-actions"><span class="live-status"><i></i> RSVP DASHBOARD</span><a href="/" class="back-invite">Xem thiệp ↗</a></div></header>
+  <main class="admin-main">
+    <section class="login-card" id="login-card" hidden>
+      <span class="login-mark">✳</span><p class="eyebrow">GÓC RIÊNG CỦA BẠN</p><h1>Chào Trâm Anh</h1><p class="login-copy">Nhập mật khẩu quản trị để xem danh sách hồi âm nhé.</p>
+      <form id="login-form"><label for="admin-password">Mật khẩu quản trị</label><div class="password-row"><input id="admin-password" name="password" type="password" autocomplete="current-password" required><button type="submit">Đăng nhập <span>↗</span></button></div><p id="login-message" class="status-message" role="status"></p></form>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="dashboard-heading"><div><p class="eyebrow">MỘT CỘT MỐC · NGÀN KHỞI ĐẦU</p><h1>Khách mời <em>của bạn.</em></h1><p class="subtitle">Tổng hợp những lời hồi âm đã gửi đến.</p></div><div class="heading-actions"><button id="refresh-button" class="icon-button" type="button" aria-label="Làm mới dữ liệu">↻</button><button id="logout-button" class="logout-button" type="button">Đăng xuất</button></div></div>
+      <div class="stats-grid">
+        <article class="stat-card stat-total"><span class="stat-label">TỔNG HỒI ÂM</span><strong id="total-responses">0</strong><span class="stat-foot">lời hồi âm đã nhận</span><span class="stat-deco">✳</span></article>
+        <article class="stat-card stat-yes"><span class="stat-label">SẼ THAM DỰ</span><strong id="attending-responses">0</strong><span class="stat-foot">lượt xác nhận có</span><span class="stat-deco">♡</span></article>
+        <article class="stat-card stat-guests"><span class="stat-label">SỐ KHÁCH DỰ KIẾN</span><strong id="expected-guests">0</strong><span class="stat-foot">tính cả người đi cùng</span><span class="stat-deco">✦</span></article>
+      </div>
+      <div class="content-grid">
+        <section class="panel chart-panel"><div class="panel-heading"><div><p class="eyebrow">TÌNH HÌNH THAM DỰ</p><h2>Lời hồi âm</h2></div><span class="chart-total" id="chart-total">0 phản hồi</span></div><div class="chart-layout"><div class="donut" id="attendance-chart" role="img" aria-label="Biểu đồ tình hình tham dự"><div class="donut-center"><strong id="chart-center">0</strong><span>phản hồi</span></div></div><div class="chart-legend"><div><i class="legend-dot yes"></i><span>Sẽ tham dự</span><strong id="legend-yes">0</strong></div><div><i class="legend-dot no"></i><span>Không tham dự</span><strong id="legend-no">0</strong></div></div></div></section>
+        <section class="panel list-panel"><div class="panel-heading"><div><p class="eyebrow">LỜI HỒI ÂM & LỜI NHẮN</p><h2>Khách mời của bạn</h2></div><span class="latest-badge">Toàn bộ phản hồi</span></div><div class="table-wrap"><table><thead><tr><th>TÊN & EMAIL</th><th>TRẠNG THÁI</th><th>KHÁCH</th><th>LỜI NHẮN</th><th>THỜI GIAN</th><th></th></tr></thead><tbody id="recent-list"><tr><td colspan="6" class="empty-row">Chưa có hồi âm nào.</td></tr></tbody></table></div><p id="table-message" class="table-message" role="status"></p></section>
+      </div>
+      <p class="privacy-note"><span>✳</span> Thông tin này chỉ hiển thị trong khu vực quản trị.</p>
+    </section>
+    <section class="loading-error" id="loading-error" hidden><span>✳</span><h1>Chưa mở được dữ liệu</h1><p id="error-copy">Kiểm tra cấu hình trong file .env rồi tải lại trang nhé.</p><button id="retry-button" type="button">Thử lại</button></section>
+  </main>
+  <footer class="admin-footer"><span>TRỊNH TRÂM ANH · 17.07.2027</span><span>Được viết bằng cả tấm lòng ♡</span></footer>
+</body>
+</html>

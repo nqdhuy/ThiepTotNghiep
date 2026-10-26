@@ -1,0 +1,13 @@
+{
+  "name": "tram-anh-graduation-invitation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A bilingual graduation invitation with an RSVP backend.",
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "start:production": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  }
+}
