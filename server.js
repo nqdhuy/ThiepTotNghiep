@@ -199,7 +199,7 @@ function listen(port, attemptsLeft = 20) {
     console.error('Could not start the invitation server:', error);
     process.exitCode = 1;
   });
-  server.listen(port, () => console.log(`Graduation invitation running at http://localhost:${port}`));
+  server.listen(port, '0.0.0.0', () => console.log(`Graduation invitation running at http://localhost:${port}`));
 }
 
 listen(PORT);

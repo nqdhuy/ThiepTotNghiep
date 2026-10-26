@@ -189,3 +189,24 @@ body{background:radial-gradient(ellipse at 50% 42%,#f7fffb 0,#e8fbf1 52%,#d7f4e5
   .envelope-address{bottom:10px}
   .bottom-note{bottom:7px}
 }
+
+/* Hand-drawn scrapbook frame around the event details. */
+.letter-event{position:relative;isolation:isolate;overflow:visible;border:0;border-radius:0;background:#effaf3;padding:38px 24px 28px;box-shadow:none}
+.letter-event::before{content:"";position:absolute;z-index:0;inset:15px 0 9px;border:1px solid #78a98a;border-radius:7px;outline:1px dashed #78a98a;outline-offset:-6px;transform:rotate(-.35deg);pointer-events:none}
+.letter-event::after{content:"";position:absolute;z-index:3;top:3px;left:50%;width:45px;height:23px;transform:translateX(-50%) rotate(-5deg);background:linear-gradient(135deg,#f4e7b8d9,#e8d493d9);border:1px solid #d4bd7866;box-shadow:0 2px 4px #46654b16;clip-path:polygon(0 0,100% 0,94% 100%,50% 88%,6% 100%);pointer-events:none}
+.letter-event>*:not(.event-doodle){position:relative;z-index:1}
+.event-doodle{position:absolute;z-index:2;line-height:1;pointer-events:none;font-variant-emoji:text}
+.doodle-cloud{top:19px;left:-13px;color:#80b9c4;font-size:24px;transform:rotate(-8deg)}
+.doodle-star{font-size:22px}
+.star-pink{top:10px;right:-11px;color:#df83a7;transform:rotate(11deg)}
+.star-yellow{bottom:0;left:-13px;color:#e4bd59;transform:rotate(-12deg)}
+.star-blue{right:-12px;bottom:0;color:#83b4dc;transform:rotate(10deg)}
+@media(max-width:600px){
+  .letter-event{padding:36px 16px 26px}
+  .letter-event::before{inset:14px 0 8px}
+  .event-doodle{font-size:19px}
+  .doodle-cloud{font-size:21px;left:-10px}
+  .star-pink{right:-8px}
+  .star-yellow{left:-10px}
+  .star-blue{right:-9px}
+}
