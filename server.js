@@ -10,16 +10,31 @@ const DATA_DIR = path.join(ROOT, 'data');
 const RSVP_FILE = path.join(DATA_DIR, 'rsvps.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const FIREBASE_SERVICE_ACCOUNT_BASE64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
 const SESSION_COOKIE = 'tram_admin';
 const SESSION_LIFETIME_SECONDS = 8 * 60 * 60;
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml' };
+
+let firestore = null;
+if (FIREBASE_SERVICE_ACCOUNT_BASE64) {
+  try {
+    const serviceAccount = JSON.parse(Buffer.from(FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8'));
+    const { cert, initializeApp } = require('firebase-admin/app');
+    const { getFirestore } = require('firebase-admin/firestore');
+    const app = initializeApp({ credential: cert(serviceAccount), projectId: serviceAccount.project_id });
+    firestore = getFirestore(app);
+  } catch (error) {
+    console.error('Could not initialize Firebase Admin. Check FIREBASE_SERVICE_ACCOUNT_BASE64.');
+    throw error;
+  }
+}
 
 function send(res, status, body, type = 'application/json; charset=utf-8', extraHeaders = {}) {
   res.writeHead(status, { 'Content-Type': type, 'X-Content-Type-Options': 'nosniff', ...extraHeaders });
   res.end(typeof body === 'string' ? body : JSON.stringify(body));
 }
 
-function readRsvps() {
+function readLocalRsvps() {
   try {
     const data = JSON.parse(fs.readFileSync(RSVP_FILE, 'utf8'));
     if (!Array.isArray(data)) throw new Error('RSVP data must be a JSON array.');
@@ -30,21 +45,45 @@ function readRsvps() {
   }
 }
 
-function writeRsvps(rsvps) {
+function writeLocalRsvps(rsvps) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const temporaryFile = `${RSVP_FILE}.tmp`;
   fs.writeFileSync(temporaryFile, JSON.stringify(rsvps, null, 2), 'utf8');
   fs.renameSync(temporaryFile, RSVP_FILE);
 }
 
+async function readRsvps() {
+  if (firestore) {
+    const snapshot = await firestore.collection('rsvps').get();
+    return snapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+  }
+  return readLocalRsvps();
+}
+
+async function writeRsvps(rsvps) {
+  if (!firestore) return writeLocalRsvps(rsvps);
+  const batch = firestore.batch();
+  const existing = await firestore.collection('rsvps').get();
+  const keep = new Set(rsvps.map(item => item.id));
+  for (const document of existing.docs) {
+    if (!keep.has(document.id)) batch.delete(document.ref);
+  }
+  for (const rsvp of rsvps) {
+    const { id, ...data } = rsvp;
+    batch.set(firestore.collection('rsvps').doc(id), data);
+  }
+  await batch.commit();
+}
+
 function normalizeLegacyRsvps() {
-  const rsvps = readRsvps();
+  if (firestore) return;
+  const rsvps = readLocalRsvps();
   let changed = false;
   for (const rsvp of rsvps) {
     if (!rsvp.id) { rsvp.id = crypto.randomUUID(); changed = true; }
     if (typeof rsvp.message !== 'string') { rsvp.message = ''; changed = true; }
   }
-  if (changed) writeRsvps(rsvps);
+  if (changed) writeLocalRsvps(rsvps);
 }
 
 function safeEqual(left, right) {
@@ -88,7 +127,7 @@ function readJson(req, res, callback) {
   });
 }
 
-function handleRsvp(input, res) {
+async function handleRsvp(input, res) {
   const name = String(input.name || '').trim().slice(0, 100);
   const email = String(input.email || '').trim().slice(0, 150);
   const emailNormalized = email.toLowerCase();
@@ -100,12 +139,27 @@ function handleRsvp(input, res) {
   }
 
   try {
-    const rsvps = readRsvps();
+    if (firestore) {
+      const id = crypto.createHash('sha256').update(emailNormalized).digest('hex');
+      try {
+        await firestore.collection('rsvps').doc(id).create({
+          name, email, guests, attending, message, submittedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        if (error.code === 6 || error.code === 'already-exists') {
+          return send(res, 409, { error: 'An RSVP has already been submitted with this email.' });
+        }
+        throw error;
+      }
+      return send(res, 201, { ok: true });
+    }
+
+    const rsvps = await readRsvps();
     if (rsvps.some(item => String(item.email || '').toLowerCase() === emailNormalized)) {
       return send(res, 409, { error: 'An RSVP has already been submitted with this email.' });
     }
     rsvps.push({ id: crypto.randomUUID(), name, email, guests, attending, message, submittedAt: new Date().toISOString() });
-    writeRsvps(rsvps);
+    await writeRsvps(rsvps);
     return send(res, 201, { ok: true });
   } catch (error) {
     console.error('Could not save RSVP:', error);
@@ -113,9 +167,9 @@ function handleRsvp(input, res) {
   }
 }
 
-function handleAdminSummary(res) {
+async function handleAdminSummary(res) {
   try {
-    const all = readRsvps();
+    const all = await readRsvps();
     const attending = all.filter(item => item.attending === true);
     const declined = all.filter(item => item.attending !== true);
     return send(res, 200, {
@@ -131,12 +185,20 @@ function handleAdminSummary(res) {
   }
 }
 
-function deleteRsvp(id, res) {
+async function deleteRsvp(id, res) {
   try {
-    const rsvps = readRsvps();
+    if (firestore) {
+      const document = firestore.collection('rsvps').doc(id);
+      const existing = await document.get();
+      if (!existing.exists) return send(res, 404, { error: 'RSVP not found.' });
+      await document.delete();
+      return send(res, 200, { ok: true });
+    }
+
+    const rsvps = await readRsvps();
     const remaining = rsvps.filter(item => item.id !== id);
     if (remaining.length === rsvps.length) return send(res, 404, { error: 'RSVP not found.' });
-    writeRsvps(remaining);
+    await writeRsvps(remaining);
     return send(res, 200, { ok: true });
   } catch (error) {
     console.error('Could not delete RSVP:', error);
@@ -169,7 +231,7 @@ const server = http.createServer((req, res) => {
     return handleAdminSummary(res);
   }
 
-  const deleteMatch = url.pathname.match(/^\/api\/admin\/rsvps\/([a-f0-9-]{36})$/i);
+  const deleteMatch = url.pathname.match(/^\/api\/admin\/rsvps\/([a-f0-9-]{36}|[a-f0-9]{64})$/i);
   if (req.method === 'DELETE' && deleteMatch) {
     if (!hasValidAdminSession(req)) return send(res, 401, { error: 'Please sign in.' });
     return deleteRsvp(deleteMatch[1], res);
